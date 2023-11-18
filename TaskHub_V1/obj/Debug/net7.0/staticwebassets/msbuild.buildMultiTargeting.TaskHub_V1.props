@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\TaskHub_V1.props" />
+</Project>
