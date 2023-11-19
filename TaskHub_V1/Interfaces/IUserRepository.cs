@@ -14,6 +14,9 @@ namespace TaskHub_V1.Interfaces
         Task<IdentityResult> ConfirmEmailAsync(User user, string token);
         Task<User> FindUserByEmailAsync(string email);
         Task<bool> CheckPasswordAsync(User user, string password);
+        Task<bool> CheckCurrentPasswordAsync(User user, string currentPassword);
+        Task<IdentityResult> ChangePasswordAsync(User user, string currentPassword, string newPassword);
+        Task SignInAsync(User user, bool isPersistent);
         string GenerateAuthToken(User user);
 
         ICollection<User> GetUsers();

@@ -3,6 +3,7 @@ using TaskHub_V1.Models;
 using TaskHub_V1.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
 
 namespace TaskHub_V1.Controllers
 {
@@ -183,19 +184,51 @@ namespace TaskHub_V1.Controllers
         }
         [HttpPut("{userId}")]
 
-        public async Task<IActionResult> UpdateUser(string userId, [FromBody] User user)
+        public async Task<IActionResult> UpdateUser(string userId, UserUpdateModel model)
         {
-            if (userId != user.Id)
+            var user = await _userRepository.GetUserByIdAsync(userId);
+            if (user == null)
             {
-                return BadRequest("User ID in the request body does not match the route parameter");
+                return NotFound();
             }
-
+            user.UserName = model.UserName;
+            user.Email = model.Email;
             var success = await _userRepository.UpdateUserAsync(user);
             if (success)
             {
                 return Ok("User updated successfully");
             }
             return BadRequest("Failed to update user");
+        }
+        [HttpPost("{userId}/ChangePassWord")]
+        public async Task<IActionResult> ChangePassword(string userId, ChangePasswordModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var user = await _userRepository.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                return NotFound($"User with ID {userId} not found.");
+            }
+            var isCurrentPasswordValid = await _userRepository.CheckCurrentPasswordAsync(user, model.CurrentPassword);
+            if (!isCurrentPasswordValid)
+            {
+                return BadRequest("The current password is incorrect.");
+            }
+            var result = await _userRepository.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
+            if (result.Succeeded)
+            {
+                await _userRepository.SignInAsync(user, isPersistent: false);
+                return Ok("Password changed successfully.");
+            }
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+
+            return BadRequest(ModelState);
         }
 
         [HttpDelete("{userId}")]

@@ -182,5 +182,18 @@ namespace TaskHub_V1.Repository
             return tokenString;
         }
 
+        public async Task<bool> CheckCurrentPasswordAsync(User user, string currentPassword)
+        {
+            return await _userManager.CheckPasswordAsync(user, currentPassword);
+        }
+
+        public async Task<IdentityResult> ChangePasswordAsync(User user, string currentPassword, string newPassword)
+        {
+            return await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+        }
+        public async Task SignInAsync(User user, bool isPersistent)
+        {
+            await _signInManager.SignInAsync(user, isPersistent);
+        }
     }
 }
