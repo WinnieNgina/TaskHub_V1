@@ -1,15 +1,14 @@
-﻿using TaskHub_V1.Interfaces;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TaskHub_V1.Interfaces;
 using TaskHub_V1.Models;
 using TaskHub_V1.Services;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
 
 namespace TaskHub_V1.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-   
+
     public class UserController : ControllerBase
     {
         private readonly IUserRepository _userRepository;
@@ -63,7 +62,7 @@ namespace TaskHub_V1.Controllers
                 var callbackUrl = Url.Action("ConfirmEmail", "User", new
                 {
                     userId = Uri.EscapeDataString(user.Id),
-                    token = Uri.EscapeDataString(token)
+                    token = token // Do not use Uri.EscapeDataString for token here
                 }, "https", Request.Host.Value);
                 //Console.WriteLine($"Callback URL: {callbackUrl}");
 
@@ -84,7 +83,7 @@ namespace TaskHub_V1.Controllers
             // Include error details in the response
             return BadRequest(new { Message = "Failed to create user", Errors = result.Errors });
         }
-        
+
         [HttpPost("ConfirmEmail")]
         [AllowAnonymous]
         public async Task<IActionResult> ConfirmEmail(string userId, string token)
@@ -108,7 +107,7 @@ namespace TaskHub_V1.Controllers
             var result = await _userRepository.ConfirmEmailAsync(user, decodedToken);
 
             // Log the result of the email confirmation
-            Console.WriteLine($"Email confirmation result: {result.Succeeded}");
+            //Console.WriteLine($"Email confirmation result: {result.Succeeded}");
             if (!result.Succeeded)
             {
                 Console.WriteLine($"Email confirmation errors: {string.Join(", ", result.Errors.Select(e => e.Description))}");
@@ -125,7 +124,7 @@ namespace TaskHub_V1.Controllers
                 return BadRequest("Failed to confirm email");
             }
         }
-        
+
         [HttpPost("Login")]
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginModel model)
@@ -247,6 +246,164 @@ namespace TaskHub_V1.Controllers
             }
             return NotFound("User not found or failed to delete user");
         }
+        [HttpPost("{userId}/Lock")]
+        [Authorize]
+        public async Task<IActionResult> LockUserAccount(string userId)
+        {
+            var user = await _userRepository.GetUserByIdAsync(userId);
 
+            if (user == null)
+            {
+                return NotFound($"User with ID {userId} not found.");
+            }
+
+            // Lock the user account
+            var lockResult = await _userRepository.LockUserAccountAsync(user);
+
+            if (lockResult)
+            {
+                // Optionally, you may return a success message or user details.
+                return Ok("User account locked successfully.");
+            }
+            else
+            {
+                return BadRequest("Failed to lock user account."); // You can customize the response based on your needs.
+            }
+        }
+        [HttpPost("UnlockAccount")]
+        [Authorize]
+        public async Task<IActionResult> UnlockAccount(string userId)
+        {
+            var user = await _userRepository.GetUserByIdAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound($"User with ID {userId} not found.");
+            }
+
+            var success = await _userRepository.UnlockUserAccountAsync(user);
+
+            if (success)
+            {
+                return Ok("User account unlocked successfully.");
+            }
+
+            return BadRequest("Failed to unlock user account.");
+        }
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            await _userRepository.LogoutAsync();
+            return Ok("Logout successful.");
+        }
+        [HttpPost("{userId}/Enable2FA")]
+        public async Task<IActionResult> EnableTwoFactorAuthentication(string userId)
+        {
+            var user = await _userRepository.GetUserByIdAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound($"User with ID {userId} not found.");
+            }
+
+            await _userRepository.EnableTwoFactorAuthenticationAsync(user);
+
+            return Ok("Two-factor authentication enabled successfully.");
+        }
+
+        [HttpPost("{userId}/Disable2FA")]
+        public async Task<IActionResult> DisableTwoFactorAuthentication(string userId)
+        {
+            var user = await _userRepository.GetUserByIdAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound($"User with ID {userId} not found.");
+            }
+
+            await _userRepository.DisableTwoFactorAuthenticationAsync(user);
+
+            return Ok("Two-factor authentication disabled successfully.");
+        }
+
+        [HttpPost("{userId}/ChangeEmail")]
+        public async Task<IActionResult> ChangeUserEmail(string userId, [FromBody] ChangeEmailModel model)
+        {
+            var user = await _userRepository.GetUserByIdAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound($"User with ID {userId} not found.");
+            }
+
+            // Verify the user's password before proceeding with the email change
+            var passwordValid = await _userRepository.CheckPasswordAsync(user, model.Password);
+
+            if (!passwordValid)
+            {
+                return BadRequest("Incorrect password. Email change request aborted.");
+            }
+
+            // Generate a unique email change token
+            var emailChangeToken = await _userRepository.GenerateChangeEmailTokenAsync(user, model.NewEmail);
+
+            if (string.IsNullOrEmpty(emailChangeToken))
+            {
+                return BadRequest("Failed to generate email change token.");
+            }
+
+            // Change the user's email address
+            //var result = await _userRepository.ChangeEmailAsync(user, model.NewEmail, emailChangeToken);
+            // Send a confirmation email to the new email address
+            var newEmailConfirmationLink = Url.Action("ConfirmNewEmail", "User", new
+            {
+                userId = Uri.EscapeDataString(user.Id),
+                token = emailChangeToken
+            }, "https", Request.Host.Value);
+
+            var newEmailSubject = "Email Change Confirmation";
+            var newEmailMessage = $"We received a request to change the email address associated with your account. If you didn't make this request, please ignore this email.\n\nTo confirm the change, click the following link:\n{newEmailConfirmationLink}";
+
+            await _emailService.SendEmailAsync(model.NewEmail, newEmailSubject, newEmailMessage);
+
+            // Optionally, you may return a success message or additional steps required.
+            return Ok("Email change request processed successfully. Confirmation email sent to the new email address.");
+        }
+        // Add this method to your UserController
+        [HttpPost("ConfirmNewEmail")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ConfirmNewEmail(string userId, string token, string NewEmail)
+        {
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(token))
+            {
+                return BadRequest("User ID and confirmation code are required.");
+            }
+
+            var decodedUserId = Uri.UnescapeDataString(userId);
+            var decodedToken = Uri.UnescapeDataString(token);
+
+            // Find the user by their ID
+            var user = await _userRepository.GetUserByIdAsync(decodedUserId);
+
+            if (user == null)
+            {
+                // User not found
+                return BadRequest("Invalid user ID");
+            }
+
+            // Verify the email change token
+            var result = await _userRepository.ChangeEmailAsync(user, NewEmail, decodedToken);
+
+            if (result.Succeeded)
+            {
+                // Email change confirmed successfully
+                return Ok("Email change confirmed successfully");
+            }
+            else
+            {
+                // Email change confirmation failed
+                return BadRequest("Failed to confirm email change");
+            }
+        }
     }
 }

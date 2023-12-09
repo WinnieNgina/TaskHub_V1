@@ -1,8 +1,8 @@
-﻿using TaskHub_V1.Models;
-using TaskHub_V1.Utilities;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using TaskHub_V1.Models;
+using TaskHub_V1.Utilities;
 
 namespace TaskHub_V1.Data
 {

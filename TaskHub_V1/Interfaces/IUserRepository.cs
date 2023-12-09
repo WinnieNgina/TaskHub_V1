@@ -1,5 +1,5 @@
-﻿using TaskHub_V1.Models;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
+using TaskHub_V1.Models;
 
 namespace TaskHub_V1.Interfaces
 {
@@ -16,6 +16,13 @@ namespace TaskHub_V1.Interfaces
         Task<bool> CheckPasswordAsync(User user, string password);
         Task<bool> CheckCurrentPasswordAsync(User user, string currentPassword);
         Task<IdentityResult> ChangePasswordAsync(User user, string currentPassword, string newPassword);
+        Task<bool> LockUserAccountAsync(User user);
+        Task<bool> UnlockUserAccountAsync(User user);
+        Task LogoutAsync();
+        Task EnableTwoFactorAuthenticationAsync(User user);
+        Task DisableTwoFactorAuthenticationAsync(User user);
+        Task<string> GenerateChangeEmailTokenAsync(User user, string newEmail);
+        Task<IdentityResult> ChangeEmailAsync(User user, string newEmail, string emailChangeToken);
         Task SignInAsync(User user, bool isPersistent);
         string GenerateAuthToken(User user);
 

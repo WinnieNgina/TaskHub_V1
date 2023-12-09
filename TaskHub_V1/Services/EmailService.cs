@@ -1,8 +1,8 @@
-﻿using TaskHub_V1.Models;
-using MailKit.Net.Smtp;
+﻿using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
+using TaskHub_V1.Models;
 
 namespace TaskHub_V1.Services
 {

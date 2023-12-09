@@ -1,5 +1,5 @@
-﻿using TaskHub_V1.Models;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
+using TaskHub_V1.Models;
 
 public class User : IdentityUser
 {
@@ -14,5 +14,6 @@ public class User : IdentityUser
     public ICollection<Project> ManagedProjects { get; set; }
     public ICollection<Comment> Comments { get; set; }
     public ICollection<UserProject> UserProjects { get; set; }
+    public bool IsLocked { get; set; }
 }
 

@@ -1,13 +1,13 @@
 ﻿
-using TaskHub_V1.Data;
-using TaskHub_V1.Interfaces;
-using TaskHub_V1.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using TaskHub_V1.Data;
+using TaskHub_V1.Interfaces;
+using TaskHub_V1.Models;
 
 namespace TaskHub_V1.Repository
 {
@@ -195,5 +195,48 @@ namespace TaskHub_V1.Repository
         {
             await _signInManager.SignInAsync(user, isPersistent);
         }
+        public async Task<bool> LockUserAccountAsync(User user)
+        {
+
+            // Update the IsLocked property
+            user.IsLocked = true;
+
+            // Update the user in the database
+            var result = await _userManager.UpdateAsync(user);
+
+            return result.Succeeded;
+        }
+        public async Task<bool> UnlockUserAccountAsync(User user)
+        {
+
+            // SetLockoutEndDateAsync is part of UserManager<TUser>
+            var result = await _userManager.SetLockoutEndDateAsync(user, null);
+
+            // Check if the operation was successful
+            return result.Succeeded;
+        }
+        public async Task LogoutAsync()
+        {
+            await _signInManager.SignOutAsync();
+        }
+        public async Task EnableTwoFactorAuthenticationAsync(User user)
+        {
+            await _userManager.SetTwoFactorEnabledAsync(user, true);
+        }
+
+        public async Task DisableTwoFactorAuthenticationAsync(User user)
+        {
+            await _userManager.SetTwoFactorEnabledAsync(user, false);
+        }
+        public async Task<string> GenerateChangeEmailTokenAsync(User user, string newEmail)
+        {
+            return await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
+        }
+
+        public async Task<IdentityResult> ChangeEmailAsync(User user, string newEmail, string emailChangeToken)
+        {
+            return await _userManager.ChangeEmailAsync(user, newEmail, emailChangeToken);
+        }
+
     }
 }
