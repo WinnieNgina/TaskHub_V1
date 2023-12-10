@@ -2,6 +2,7 @@ using MailKit.Net.Smtp;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
@@ -67,6 +68,7 @@ builder.Services.AddIdentity<User, IdentityRole>(opt =>
 
     // Sign-in requirements
     opt.SignIn.RequireConfirmedEmail = true;
+    opt.Tokens.AuthenticatorTokenProvider = TokenOptions.DefaultEmailProvider;
 })
 .AddEntityFrameworkStores<DataContext>()
 .AddDefaultTokenProviders();

@@ -23,6 +23,7 @@ namespace TaskHub_V1.Interfaces
         Task DisableTwoFactorAuthenticationAsync(User user);
         Task<string> GenerateChangeEmailTokenAsync(User user, string newEmail);
         Task<IdentityResult> ChangeEmailAsync(User user, string newEmail, string emailChangeToken);
+        Task<string> GenerateTwoFactorTokenAsync(User user);
         Task SignInAsync(User user, bool isPersistent);
         string GenerateAuthToken(User user);
 

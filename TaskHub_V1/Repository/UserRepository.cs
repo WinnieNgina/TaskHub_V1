@@ -237,6 +237,10 @@ namespace TaskHub_V1.Repository
         {
             return await _userManager.ChangeEmailAsync(user, newEmail, emailChangeToken);
         }
+        public async Task<string> GenerateTwoFactorTokenAsync(User user)
+        {
+            return await _userManager.GenerateTwoFactorTokenAsync(user, _userManager.Options.Tokens.AuthenticatorTokenProvider);
+        }
 
     }
 }

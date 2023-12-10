@@ -145,17 +145,34 @@ namespace TaskHub_V1.Controllers
 
             var result = await _userRepository.CheckPasswordAsync(user, model.Password);
 
-            if (result == true)
+            if (result)
             {
-                // Password is correct, generate and return the authentication token
-                var token = _userRepository.GenerateAuthToken(user);
+                // Password is correct
+                if (user.TwoFactorEnabled)
+                {
+                    // Two-factor authentication is enabled
+                    var otpToken = await _userRepository.GenerateTwoFactorTokenAsync(user);
+                    Console.WriteLine(otpToken);
 
+                    // Optionally, you may use otpToken for further processing or validation
+                    var emailSubject = "Your Login OTP Code";
+                    var emailMessage = $"Your OTP code is: {otpToken}";
+
+                    await _emailService.SendEmailAsync(user.Email, emailSubject, emailMessage);
+
+                    // Optionally, you may return a message to inform the user
+                    return Ok("Please check your email for the OTP code.");
+                }
+
+                // 2FA is not enabled, generate and return the authentication token
+                var token = _userRepository.GenerateAuthToken(user);
                 return Ok(new { Token = token });
             }
 
             // Invalid password
             return BadRequest("Invalid email or password");
         }
+
 
 
         [HttpGet("{userId}")]
